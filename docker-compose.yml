@@ -1,0 +1,60 @@
+version: "3.1"
+
+networks:
+  net-bridge:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 10.0.0.0/24
+
+services:
+
+  nginx:
+    image: nginx:stable
+    container_name: lnmp-nginx
+    ports:
+      - 80:80
+    volumes:
+      - ./data/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./data/www:/usr/share/nginx/html/
+    networks:
+      net-bridge:
+        ipv4_address: 10.0.0.10
+    depends_on:
+      - php-fpm
+    
+  php-fpm:
+    build:
+      context: ./build
+      dockerfile: php.Dockerfile
+    container_name: lnmp-php
+    volumes:
+      - ./data/php-fpm/www.conf:/usr/local/etc/php-fpm.d/www.conf
+      - ./data/www:/usr/share/nginx/html/
+    networks:
+      net-bridge:
+        ipv4_address: 10.0.0.11      
+    depends_on: 
+      - mariadb
+
+  mariadb:
+    image: mariadb:10.7
+    container_name: lnmp-mariadb
+    volumes:
+      - ./data/mariadb/db:/var/lib/mysql
+    environment:
+      MARIADB_ROOT_PASSWORD: SAMPLE_PASS
+    networks:
+      net-bridge:
+        ipv4_address: 10.0.0.12
+    
+  pma:
+    image: phpmyadmin:latest
+    container_name: pma
+    ports:
+      - 81:80
+    environment:
+      - PMA_ARBITRARY=1
+    networks:
+      net-bridge:
+        ipv4_address: 10.0.0.13
